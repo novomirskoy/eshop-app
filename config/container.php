@@ -2,6 +2,7 @@
 
 use Novomirskoy\Websocket\Client\ClientStorage;
 use Novomirskoy\Websocket\Client\ClientStorageInterface;
+use Novomirskoy\Websocket\Pusher\PusherRegistry;
 use Novomirskoy\Websocket\Pusher\ServerPushHandlerRegistry;
 use Novomirskoy\Websocket\Router\NullPubSubRouter;
 use Novomirskoy\Websocket\Router\WampRouter;
@@ -21,28 +22,19 @@ use Novomirskoy\Websocket\Topic\TopicPeriodicTimer;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Ratchet\Wamp\TopicManager;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use yii\di\Container;
 
 $container = \Yii::$container;
 $websocketConfig = require_once __DIR__ . '/websocket.php';
 
-$container->set(EntryPoint::class, function ($container) {
+$container->set(EntryPoint::class, function (Container $container) {
     $serverRegistry = $container->get(ServerRegistry::class);
 
     return new EntryPoint($serverRegistry);
 });
-
-$container->set(ServerRegistry::class, function ($container) use ($websocketConfig) {
-    $registry = new ServerRegistry();
-
-    $servers = $websocketConfig['servers'];
-    foreach ($servers as $server) {
-        $registry->addServer($container->get($server));
-    }
-
-    return $registry;
-});
+$container->set('web_socket.entry_point', EntryPoint::class);
 
 $container->set(WebSocketServer::class, function (Container $container) {
     /** @var \React\EventLoop\LoopInterface $loop */
@@ -70,18 +62,6 @@ $container->set(WebSocketServer::class, function (Container $container) {
     );
 });
 
-$container->set('web_socket.server.event_loop', function () {
-    return React\EventLoop\Factory::create();
-});
-
-$container->set('web_socket.event_dispatcher', function () {
-    return new Symfony\Component\EventDispatcher\EventDispatcher();
-});
-
-$container->set(PeriodicRegistry::class, function () {
-    return new PeriodicRegistry();
-});
-
 $container->set(WampApplication::class, function (Container $container) {
     //@todo Добавить зависимости в приложение
     $rpcDispatcher = $container->get(RpcDispatcherInterface::class);
@@ -102,31 +82,78 @@ $container->set(WampApplication::class, function (Container $container) {
     return $application;
 });
 
+$container->set(TopicPeriodicTimer::class, function (Container $container) {
+    /** @var \React\EventLoop\LoopInterface $loop */
+    $loop = $container->get('web_socket.server.event_loop');
+
+    return new TopicPeriodicTimer($loop);
+});
+
+$container->set(ClientStorageInterface::class, function (Container $container) use ($websocketConfig) {
+    $ttl = array_key_exists('ttl', $websocketConfig['clientStorage'])
+        ? $websocketConfig['clientStorage']['ttl']
+        : PHP_INT_MAX;
+    $logger = $container->get(LoggerInterface::class);
+
+    return new ClientStorage($ttl, $logger);
+});
+
+/*
+ * Registry
+ */
+
+$container->set(ServerRegistry::class, function (Container $container) use ($websocketConfig) {
+    $registry = new ServerRegistry();
+
+    $servers = $websocketConfig['servers'];
+    foreach ($servers as $server) {
+        $registry->addServer($container->get($server));
+    }
+
+    return $registry;
+});
+$container->set('web_socket.server.registry', ServerRegistry::class);
+
+$container->set(RpcRegistry::class, function () {
+    return new RpcRegistry();
+});
+$container->set('web_socket.rpc.registry', RpcRegistry::class);
+
+$container->set(TopicRegistry::class, function () {
+    return new TopicRegistry();
+});
+$container->set('web_socket.topic.registry', TopicRegistry::class);
+
+$container->set(PeriodicRegistry::class, function () {
+    return new PeriodicRegistry();
+});
+$container->set('web_socket.periodic.registry', PeriodicRegistry::class);
+
 $container->set(OriginRegistry::class, function () {
     return new OriginRegistry();
 });
-
-$container->set(TopicManager::class, function () {
-    return new TopicManager();
-});
+$container->set('web_socket.origins.registry', OriginRegistry::class);
 
 $container->set(ServerPushHandlerRegistry::class, function () {
     return new ServerPushHandlerRegistry();
 });
+$container->set('web_socket.server_push_handler.registry', ServerPushHandlerRegistry::class);
 
-$container->set(LoggerInterface::class, function () {
-    return new NullLogger();
+$container->set(PusherRegistry::class, function () {
+    return new PusherRegistry();
 });
+$container->set('web_socket.pusher_registry', PusherRegistry::class);
+
+/*
+ * Dispatcher
+ */
 
 $container->set(RpcDispatcherInterface::class, function (Container $container) {
     $registry = $container->get(RpcRegistry::class);
 
     return new RpcDispatcher($registry);
 });
-
-$container->set(RpcRegistry::class, function () {
-    return new RpcRegistry();
-});
+$container->set('web_socket.rpc.dispatcher', RpcDispatcherInterface::class);
 
 $container->set(TopicDispatcherInterface::class, function (Container $container) use ($websocketConfig) {
     $registry = $container->get(TopicRegistry::class);
@@ -143,10 +170,25 @@ $container->set(TopicDispatcherInterface::class, function (Container $container)
         $logger
     );
 });
+$container->set('web_socket.topic.dispatcher', TopicDispatcherInterface::class);
 
-$container->set(TopicRegistry::class, function () {
-    return new TopicRegistry();
+/*
+ * Manager
+ */
+
+$container->set(TopicManager::class, function () {
+    return new TopicManager();
 });
+$container->set('web_socket.wamp.topic_manager', TopicManager::class);
+
+/*
+ * Router
+ */
+
+$container->set(NullPubSubRouter::class, function () {
+    return new NullPubSubRouter();
+});
+$container->set('web_socket.null.pubsub.router', NullPubSubRouter::class);
 
 $container->set(WampRouter::class, function (Container $container) use ($websocketConfig) {
     /** @var NullPubSubRouter $router */
@@ -159,27 +201,30 @@ $container->set(WampRouter::class, function (Container $container) use ($websock
         $logger
     );
 });
+$container->set('web_socket.router.wamp', WampRouter::class);
 
-$container->set('web_socket.null.pubsub.router', function () {
-    return new NullPubSubRouter();
+/*
+ * Logger
+ */
+
+$container->set(LoggerInterface::class, function () {
+    return new NullLogger();
 });
+$container->set('logger.websocket', LoggerInterface::class);
 
-$container->set(TopicPeriodicTimer::class, function (Container $container) {
-    /** @var \React\EventLoop\LoopInterface $loop */
-    $loop = $container->get('web_socket.server.event_loop');
+/*
+ * EventManager
+ */
 
-    return new TopicPeriodicTimer($loop);
+$container->set(EventDispatcher::class, function () {
+    return new EventDispatcher();
 });
+$container->set('web_socket.event_dispatcher', EventDispatcher::class);
 
-$container->set(TopicManager::class, function () {
-    return new TopicManager();
-});
+/*
+ * Loop
+ */
 
-$container->set(ClientStorageInterface::class, function (Container $container) use ($websocketConfig) {
-    $ttl = array_key_exists('ttl', $websocketConfig['clientStorage'])
-        ? $websocketConfig['clientStorage']['ttl']
-        : PHP_INT_MAX;
-    $logger = $container->get(LoggerInterface::class);
-
-    return new ClientStorage($ttl, $logger);
+$container->set('web_socket.server.event_loop', function () {
+    return React\EventLoop\Factory::create();
 });
