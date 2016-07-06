@@ -4,6 +4,18 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use Novomirskoy\Websocket\Client\ClientStorage;
 use Novomirskoy\Websocket\Client\ClientStorageInterface;
+use Novomirskoy\Websocket\PubSubRouter\Cache\PhpFileCacheDecorator;
+use Novomirskoy\Websocket\PubSubRouter\Generator\Generator;
+use Novomirskoy\Websocket\PubSubRouter\Generator\GeneratorInterface;
+use Novomirskoy\Websocket\PubSubRouter\Loader\RouteLoader;
+use Novomirskoy\Websocket\PubSubRouter\Loader\YamlFileLoader;
+use Novomirskoy\Websocket\PubSubRouter\Matcher\Matcher;
+use Novomirskoy\Websocket\PubSubRouter\Matcher\MatcherInterface;
+use Novomirskoy\Websocket\PubSubRouter\Router\RouteCollection;
+use Novomirskoy\Websocket\PubSubRouter\Router\Router;
+use Novomirskoy\Websocket\PubSubRouter\Router\RouterContext;
+use Novomirskoy\Websocket\PubSubRouter\Tokenizer\Tokenizer;
+use Novomirskoy\Websocket\PubSubRouter\Tokenizer\TokenizerInterface;
 use Novomirskoy\Websocket\Pusher\PusherRegistry;
 use Novomirskoy\Websocket\Pusher\ServerPushHandlerRegistry;
 use Novomirskoy\Websocket\Router\NullPubSubRouter;
@@ -25,6 +37,7 @@ use Novomirskoy\Websocket\Topic\TopicInterface;
 use Novomirskoy\Websocket\Topic\TopicPeriodicTimer;
 use Psr\Log\LoggerInterface;
 use Ratchet\Wamp\TopicManager;
+use Symfony\Component\Config\FileLocator;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use yii\di\Container;
@@ -226,6 +239,40 @@ $container->set(WampRouter::class, function (Container $container) use ($websock
 $container->set('web_socket.router.wamp', WampRouter::class);
 
 /*
+ * Pub-Sub router
+ */
+$container->set(TokenizerInterface::class, function () {
+    return new Tokenizer();
+});
+$container->set('pubsub_router.tokenizer.default', TokenizerInterface::class);
+
+$container->set(MatcherInterface::class, function (Container $container) {
+    $tokenizer = $container->get(TokenizerInterface::class);
+    
+    return new Matcher($tokenizer);
+});
+$container->set('pubsub_router.matcher', MatcherInterface::class);
+
+$container->set(GeneratorInterface::class, function (Container $container) {
+    $tokenizer = $container->get(TokenizerInterface::class);
+    
+    return new Generator($tokenizer);
+});
+$container->set('pubsub_router.generator', GeneratorInterface::class);
+
+$container->set('pubsub_router.php_file.cache', function () use ($websocketConfig) {
+    $cacheDir = $websocketConfig['pubSubRouter']['cacheDir'];
+    
+    return new PhpFileCacheDecorator($cacheDir, true);
+});
+
+$container->set('pubsub_router.yaml.loader', function () {
+    $fileLocator = new FileLocator();
+    
+    return new YamlFileLoader($fileLocator);
+});
+
+/*
  * Logger
  */
 
@@ -253,3 +300,65 @@ $container->set('web_socket.event_dispatcher', EventDispatcher::class);
 $container->set('web_socket.server.event_loop', function () {
     return React\EventLoop\Factory::create();
 });
+
+// Configure routers
+$pubSubRouter = $websocketConfig['pubSubRouter'];
+$routers = $pubSubRouter['routers'];
+
+foreach ($routers as $name => $routerConf) {
+    // RouteCollection
+    $collectionServiceName = 'pubsub_router.collection.' . $name;
+    $container->set($collectionServiceName, function() {
+        return new RouteCollection();
+    });
+    /** @var RouteCollection $routeCollection */
+    $routeCollection = $container->get($collectionServiceName);
+    
+    // Matcher
+    $matcher = $container->get(MatcherInterface::class);
+    $matcher->setCollection($routeCollection);
+    
+    // Generator
+    $generator = $container->get(GeneratorInterface::class);
+    $generator->setCollection($routeCollection);
+    
+    // RouteLoader
+    $routeLoaderServiceName = 'pubsub_router.loader.' . $name;
+    $routeLoader = new RouteLoader(
+        $routeCollection,
+        $container->get('pubsub_router.php_file.cache'), 
+        $name
+    );
+    
+    foreach ($routerConf['resources'] as $resource) {
+        $routeLoader->addResource([$resource]);
+    }
+    
+    foreach ($routerConf['loaders'] as $loader) {
+        $routeLoader->addLoader($container->get($loader));
+    }
+    
+    $container->set($routeLoaderServiceName, $routeLoader);
+    
+    // Router Context
+    $contextConf = $routerConf['context'];
+    $routerContextServiceName = 'pubsub_router.context.' . $name;
+    $routerContext = new RouterContext();
+    $routerContext->setTokenSeparator($contextConf['tokenSeparator']);
+    
+    $container->set($routerContextServiceName, $routerContext);
+    
+    // Router
+    $routerServiceName = 'pubsub_router.' . $name;
+    $router = new Router(
+        $routeCollection,
+        $matcher,
+        $generator,
+        $routeLoader,
+        $name
+    );
+    
+    $router->setContext($routerContext);
+    
+    $container->set($routerServiceName, $router);
+}

@@ -1,0 +1,9 @@
+acme_topic:
+    channel: acme/channel
+    handler:
+        callback: 'acme.topic'
+
+acme_rpc:
+    channel: sample/{method}
+    handler:
+        callback: 'acme.rpc'

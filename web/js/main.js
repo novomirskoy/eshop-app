@@ -1,6 +1,11 @@
 var websocket = WS.connect("ws://127.0.0.1:1337");
 
+var sess;
+
 websocket.on("socket/connect", function(session){
+
+    sess = session;
+
     session.subscribe("acme/channel", function(uri, payload){
         console.log("Received message", payload.msg);
     });

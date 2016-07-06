@@ -18,4 +18,18 @@ return [
     'topics' => [
         topic\AcmeTopic::class,
     ],
+    'pubSubRouter' => [
+        'cacheDir' => __DIR__ . '/../runtime/pubSubRouter/cache',
+        'routers' => [
+            'websocket' => [
+                'context' => [
+                    'tokenSeparator' => '/',
+                ],
+                'resources' => __DIR__ . '/websocket/pubsub/routing.yml',
+                'loaders' => [
+                    'pubsub_router.yaml.loader',
+                ],
+            ],
+        ],
+    ],
 ];
