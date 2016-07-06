@@ -1,6 +1,8 @@
 <?php
 
 use Novomirskoy\Websocket\Server\Type\WebSocketServer;
+use app\websocket\topic;
+use app\websocket\rpc;
 
 return [
     'debug' => true,
@@ -9,5 +11,11 @@ return [
     ],
     'servers' => [
         WebSocketServer::class,
-    ],    
+    ],
+    'rpc' => [
+        rpc\AcmeRpc::class,
+    ],
+    'topics' => [
+        topic\AcmeTopic::class,
+    ],
 ];

@@ -1,11 +1,14 @@
 <?php
 
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
 use Novomirskoy\Websocket\Client\ClientStorage;
 use Novomirskoy\Websocket\Client\ClientStorageInterface;
 use Novomirskoy\Websocket\Pusher\PusherRegistry;
 use Novomirskoy\Websocket\Pusher\ServerPushHandlerRegistry;
 use Novomirskoy\Websocket\Router\NullPubSubRouter;
 use Novomirskoy\Websocket\Router\WampRouter;
+use Novomirskoy\Websocket\RPC\RpcInterface;
 use Novomirskoy\Websocket\Server\App\Dispatcher\RpcDispatcher;
 use Novomirskoy\Websocket\Server\App\Dispatcher\RpcDispatcherInterface;
 use Novomirskoy\Websocket\Server\App\Dispatcher\TopicDispatcher;
@@ -18,9 +21,9 @@ use Novomirskoy\Websocket\Server\App\Registry\TopicRegistry;
 use Novomirskoy\Websocket\Server\App\WampApplication;
 use Novomirskoy\Websocket\Server\EntryPoint;
 use Novomirskoy\Websocket\Server\Type\WebSocketServer;
+use Novomirskoy\Websocket\Topic\TopicInterface;
 use Novomirskoy\Websocket\Topic\TopicPeriodicTimer;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 use Ratchet\Wamp\TopicManager;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -63,12 +66,12 @@ $container->set(WebSocketServer::class, function (Container $container) {
 });
 
 $container->set(WampApplication::class, function (Container $container) {
-    //@todo Добавить зависимости в приложение
     $rpcDispatcher = $container->get(RpcDispatcherInterface::class);
     $topicDispatcher = $container->get(TopicDispatcherInterface::class);
     /** @var EventDispatcherInterface $eventDispatcher */
     $eventDispatcher = $container->get('web_socket.event_dispatcher');
     $clientStorage = $container->get(ClientStorageInterface::class);
+    $wampRouter = $container->get(WampRouter::class);
     $logger = $container->get(LoggerInterface::class);
     
     $application = new WampApplication(
@@ -76,6 +79,7 @@ $container->set(WampApplication::class, function (Container $container) {
         $topicDispatcher,
         $eventDispatcher,
         $clientStorage,
+        $wampRouter,
         $logger
     );
     
@@ -114,13 +118,31 @@ $container->set(ServerRegistry::class, function (Container $container) use ($web
 });
 $container->set('web_socket.server.registry', ServerRegistry::class);
 
-$container->set(RpcRegistry::class, function () {
-    return new RpcRegistry();
+$container->set(RpcRegistry::class, function (Container $container) use ($websocketConfig) {
+    $registry = new RpcRegistry();
+
+    $rpcHandlers = $websocketConfig['rpc'] ?: [];
+    foreach ($rpcHandlers as $handler) {
+        /** @var RpcInterface $handlerService */
+        $handlerService = $container->get($handler);
+        $registry->addRpc($handlerService);
+    }
+
+    return $registry;
 });
 $container->set('web_socket.rpc.registry', RpcRegistry::class);
 
-$container->set(TopicRegistry::class, function () {
-    return new TopicRegistry();
+$container->set(TopicRegistry::class, function (Container $container) use ($websocketConfig) {
+    $registry = new TopicRegistry();
+
+    $topicHandlers = $websocketConfig['topics'] ?: [];
+    foreach ($topicHandlers as $handler) {
+        /** @var TopicInterface $handlerService */
+        $handlerService = $container->get($handler);
+        $registry->addTopic($handlerService);
+    }
+
+    return $registry;
 });
 $container->set('web_socket.topic.registry', TopicRegistry::class);
 
@@ -192,7 +214,7 @@ $container->set('web_socket.null.pubsub.router', NullPubSubRouter::class);
 
 $container->set(WampRouter::class, function (Container $container) use ($websocketConfig) {
     /** @var NullPubSubRouter $router */
-    $router = $container->get('web_socket.null.pubsub.router');
+    $router = $container->get(NullPubSubRouter::class);
     $logger = $container->get(LoggerInterface::class);
 
     return new WampRouter(
@@ -208,7 +230,10 @@ $container->set('web_socket.router.wamp', WampRouter::class);
  */
 
 $container->set(LoggerInterface::class, function () {
-    return new NullLogger();
+    $log = new Logger('websocket');
+    $log->pushHandler(new StreamHandler(__DIR__ . '/../runtime/logger.log', Logger::DEBUG));
+    
+    return $log;
 });
 $container->set('logger.websocket', LoggerInterface::class);
 
