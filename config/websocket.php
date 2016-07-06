@@ -25,7 +25,9 @@ return [
                 'context' => [
                     'tokenSeparator' => '/',
                 ],
-                'resources' => __DIR__ . '/websocket/pubsub/routing.yml',
+                'resources' => [
+                    __DIR__ . '/websocket/pubsub/routing.yml',
+                ],
                 'loaders' => [
                     'pubsub_router.yaml.loader',
                 ],

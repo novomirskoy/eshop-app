@@ -226,8 +226,8 @@ $container->set(NullPubSubRouter::class, function () {
 $container->set('web_socket.null.pubsub.router', NullPubSubRouter::class);
 
 $container->set(WampRouter::class, function (Container $container) use ($websocketConfig) {
-    /** @var NullPubSubRouter $router */
-    $router = $container->get(NullPubSubRouter::class);
+    /** @var Router $router */
+    $router = $container->get('pubsub_router.websocket');
     $logger = $container->get(LoggerInterface::class);
 
     return new WampRouter(
