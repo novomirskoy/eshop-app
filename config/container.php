@@ -2,8 +2,10 @@
 
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
+use Novomirskoy\Websocket\Client\Auth\WebsocketAuthenticationProvider;
 use Novomirskoy\Websocket\Client\ClientStorage;
 use Novomirskoy\Websocket\Client\ClientStorageInterface;
+use Novomirskoy\Websocket\Event\ClientEventListener;
 use Novomirskoy\Websocket\PubSubRouter\Cache\PhpFileCacheDecorator;
 use Novomirskoy\Websocket\PubSubRouter\Generator\Generator;
 use Novomirskoy\Websocket\PubSubRouter\Generator\GeneratorInterface;
@@ -292,6 +294,26 @@ $container->set(EventDispatcher::class, function () {
     return new EventDispatcher();
 });
 $container->set('web_socket.event_dispatcher', EventDispatcher::class);
+
+/*
+ * Events
+ */
+
+$container->set(ClientEventListener::class, function (Container $container) {
+    $clientStorage = $container->get(ClientStorageInterface::class);
+    $logger = $container->get(LoggerInterface::class);
+});
+
+/*
+ * Authentication
+ */
+
+$container->set(WebsocketAuthenticationProvider::class, function(Container $container) {
+    $tokenStorage = 'ThisTokenIsNotSoSecretChangeIt';
+    $clientStorage = $container->get(ClientStorageInterface::class);
+    $logger = $container->get(LoggerInterface::class);
+});
+$container->set('web_socket.websocket_authentification.provider', WebsocketAuthenticationProvider::class);
 
 /*
  * Loop

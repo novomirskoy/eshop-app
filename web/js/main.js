@@ -1,4 +1,4 @@
-var websocket = WS.connect("ws://127.0.0.1:1337");
+var websocket = WS.connect("ws://localhost:8081");
 
 var sess;
 

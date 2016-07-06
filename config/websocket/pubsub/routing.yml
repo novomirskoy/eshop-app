@@ -10,3 +10,11 @@ acme_rpc:
     requirements:
         method:
             pattern: "[a-z_]+"
+
+product_rpc:
+    channel: product/{method}
+    handler:
+        callback: 'product.rpc'
+    requirements:
+        method:
+            pattern: "[a-z_]+"
