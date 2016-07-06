@@ -7,3 +7,6 @@ acme_rpc:
     channel: sample/{method}
     handler:
         callback: 'acme.rpc'
+    requirements:
+        method:
+            pattern: "[a-z_]+"

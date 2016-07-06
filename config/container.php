@@ -331,7 +331,7 @@ foreach ($routers as $name => $routerConf) {
     );
     
     foreach ($routerConf['resources'] as $resource) {
-        $routeLoader->addResource([$resource]);
+        $routeLoader->addResource($resource);
     }
     
     foreach ($routerConf['loaders'] as $loader) {
@@ -361,4 +361,6 @@ foreach ($routers as $name => $routerConf) {
     $router->setContext($routerContext);
     
     $container->set($routerServiceName, $router);
+    
+    $routeLoader->load();
 }
