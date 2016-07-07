@@ -18,3 +18,21 @@ product_rpc:
     requirements:
         method:
             pattern: "[a-z_]+"
+
+product_topic:
+    channel: product/channel
+    handler:
+        callback: 'product.topic'
+
+cart_rpc:
+    channel: cart/{method}
+    handler:
+        callback: 'cart.rpc'
+    requirements:
+        method:
+            pattern: "[a-z_]+"
+
+cart_topic:
+    channel: cart/channel
+    handler:
+        callback: 'cart.topic'

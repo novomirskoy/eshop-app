@@ -18,6 +18,7 @@ return [
     ],
     'topics' => [
         topic\AcmeTopic::class,
+        topic\ProductTopic::class,
     ],
     'pubSubRouter' => [
         'cacheDir' => __DIR__ . '/../runtime/pubSubRouter/cache',

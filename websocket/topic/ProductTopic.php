@@ -2,45 +2,54 @@
 
 namespace app\websocket\topic;
 
+use app\repositories\ProductRepositoryInterface;
 use Novomirskoy\Websocket\Router\WampRequest;
 use Novomirskoy\Websocket\Topic\TopicInterface;
 use Ratchet\ConnectionInterface;
 use Ratchet\Wamp\Topic;
-use Ratchet\Wamp\WampConnection;
 
 /**
- * Class AcmeTopic
+ * Class ProductTopic
  * @package app\websocket\topic
  */
-class AcmeTopic implements TopicInterface
+class ProductTopic implements TopicInterface
 {
     /**
-     * @param ConnectionInterface|WampConnection $connection
-     * @param Topic $topic
-     * @param WampRequest $request
-     * 
-     * @return void
+     * @var ProductRepositoryInterface
      */
-    public function onSubscribe(ConnectionInterface $connection, Topic $topic, WampRequest $request)
-    {
-        $topic->broadcast(['msg' => $connection->resourceId . ' has joined ' . $topic->getId()]);
-    }
+    protected $repository;
 
     /**
-     * @param ConnectionInterface|WampConnection $connection
-     * @param Topic $topic
-     * @param WampRequest $request
-     * 
-     * @return void
+     * ProductTopic constructor.
+     * @param ProductRepositoryInterface $repository
      */
-    public function onUnSubscribe(ConnectionInterface $connection, Topic $topic, WampRequest $request)
+    public function __construct(ProductRepositoryInterface $repository)
     {
-        $topic->broadcast(['msg' => $connection->resourceId . ' has left ' . $topic->getId()]);
+        $this->repository = $repository;
     }
 
     /**
      * @param ConnectionInterface $connection
-     * 
+     * @param Topic $topic
+     * @param WampRequest $request
+     */
+    public function onSubscribe(ConnectionInterface $connection, Topic $topic, WampRequest $request)
+    {
+        // TODO: Implement onSubscribe() method.
+    }
+
+    /**
+     * @param ConnectionInterface $connection
+     * @param Topic $topic
+     * @param WampRequest $request
+     */
+    public function onUnSubscribe(ConnectionInterface $connection, Topic $topic, WampRequest $request)
+    {
+        // TODO: Implement onUnSubscribe() method.
+    }
+
+    /**
+     * @param ConnectionInterface $connection
      * @param Topic $topic
      * @param WampRequest $request
      * @param string $event
@@ -49,7 +58,7 @@ class AcmeTopic implements TopicInterface
      */
     public function onPublish(ConnectionInterface $connection, Topic $topic, WampRequest $request, $event, array $exclude, array $eligible)
     {
-        $topic->broadcast(['msg' => $event]);
+        // TODO: Implement onPublish() method.
     }
 
     /**
@@ -57,6 +66,6 @@ class AcmeTopic implements TopicInterface
      */
     public function getName()
     {
-        return 'acme.topic';
+        return 'product.topic';
     }
 }

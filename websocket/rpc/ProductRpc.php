@@ -3,6 +3,7 @@
 namespace app\websocket\rpc;
 
 use app\models\Product;
+use app\repositories\ProductRepositoryInterface;
 use Novomirskoy\Websocket\Router\WampRequest;
 use Novomirskoy\Websocket\RPC\RpcInterface;
 use Ratchet\ConnectionInterface;
@@ -14,6 +15,21 @@ use Ratchet\ConnectionInterface;
 class ProductRpc implements RpcInterface
 {
     /**
+     * @var ProductRepositoryInterface
+     */
+    protected $repository;
+    
+    /**
+     * ProductRpc constructor.
+     * 
+     * @param ProductRepositoryInterface $repository
+     */
+    public function __construct(ProductRepositoryInterface $repository)
+    {
+        $this->repository = $repository;
+    }
+
+    /**
      * @param ConnectionInterface $connection
      * @param WampRequest $request
      * @param $params
@@ -22,8 +38,7 @@ class ProductRpc implements RpcInterface
      */
     public function getAll(ConnectionInterface $connection, WampRequest $request, $params)
     {
-        /** @var Product[] $products */
-        $products = Product::find()->all();
+        $products = $this->repository->findAll();
         $productsData = [];
 
         foreach ($products as $product) {

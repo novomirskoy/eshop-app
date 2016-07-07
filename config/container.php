@@ -46,6 +46,7 @@ use yii\di\Container;
 
 $container = \Yii::$container;
 $websocketConfig = require_once __DIR__ . '/websocket.php';
+require_once __DIR__ . '/dependencies/repositories.php';
 
 $container->set(EntryPoint::class, function (Container $container) {
     $serverRegistry = $container->get(ServerRegistry::class);

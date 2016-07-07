@@ -1,10 +1,10 @@
-var websocket = WS.connect("ws://localhost:8081");
+var websocket = WS.connect("ws://localhost:1337");
 
-var sess;
+var websocketSession;
 
 websocket.on("socket/connect", function(session){
 
-    sess = session;
+    websocketSession = session;
 
     session.subscribe("acme/channel", function(uri, payload){
         console.log("Received message", payload.msg);
@@ -39,4 +39,22 @@ websocket.on("socket/disconnect", function(error){
     //error provides us with some insight into the disconnection: error.reason and error.code
 
     console.log("Disconnected for " + error.reason + " with code " + error.code);
+});
+
+var Product = new Vue.extend({
+    data: {
+        id: '',
+        name: '',
+        description: '',
+        price: '',
+        quantity: '',
+        image: ''
+    }
+});
+
+new Vue({
+    el: "#app",
+    data: {
+        products: []
+    }
 });
