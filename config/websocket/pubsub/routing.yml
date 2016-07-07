@@ -11,6 +11,11 @@ acme_rpc:
         method:
             pattern: "[a-z_]+"
 
+product_topic:
+    channel: product/channel
+    handler:
+        callback: 'product.topic'
+
 product_rpc:
     channel: product/{method}
     handler:
@@ -18,11 +23,6 @@ product_rpc:
     requirements:
         method:
             pattern: "[a-z_]+"
-
-product_topic:
-    channel: product/channel
-    handler:
-        callback: 'product.topic'
 
 cart_rpc:
     channel: cart/{method}

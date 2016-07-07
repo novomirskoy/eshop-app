@@ -11,6 +11,7 @@ use yii\web\AssetBundle;
 class VueAsset extends AssetBundle
 {
     public $js = [
-        'js/vuejs',
+        'js/vue.js',
+        'js/vue-strap.js',
     ];
 }

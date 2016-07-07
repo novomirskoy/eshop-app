@@ -7,6 +7,7 @@ use Novomirskoy\Websocket\Router\WampRequest;
 use Novomirskoy\Websocket\Topic\TopicInterface;
 use Ratchet\ConnectionInterface;
 use Ratchet\Wamp\Topic;
+use Ratchet\Wamp\WampConnection;
 
 /**
  * Class ProductTopic
@@ -29,13 +30,14 @@ class ProductTopic implements TopicInterface
     }
 
     /**
-     * @param ConnectionInterface $connection
+     * @param ConnectionInterface|WampConnection $connection
      * @param Topic $topic
      * @param WampRequest $request
      */
     public function onSubscribe(ConnectionInterface $connection, Topic $topic, WampRequest $request)
     {
-        // TODO: Implement onSubscribe() method.
+
+        $topic->broadcast(['products' => $this->getProductData()]);
     }
 
     /**
@@ -67,5 +69,26 @@ class ProductTopic implements TopicInterface
     public function getName()
     {
         return 'product.topic';
+    }
+
+    /**
+     * @return array
+     */
+    protected function getProductData()
+    {
+        $products = $this->repository->findAll();
+        $productsData = [];
+
+        foreach ($products as $product) {
+            $productsData[] = [
+                'id' => $product->id,
+                'description' => $product->description,
+                'price' => $product->price,
+                'quantity' => $product->quantity,
+                'image' => $product->image,
+            ];
+        }
+
+        return $productsData;
     }
 }
