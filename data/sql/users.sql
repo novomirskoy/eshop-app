@@ -1,0 +1,2 @@
+INSERT INTO users(username, password, auth_key, accessToken) VALUES
+  ('test@test.ru', '$2y$10$OxLIXn98sbJd3Rcdd7Ci7emojL3n08UenFDJ27rtEh1cWKlu6kAFu', 'test-auth-key', '1bc14645-efe7-453e-9709-b1e2f1b844bb');

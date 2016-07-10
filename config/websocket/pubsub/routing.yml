@@ -36,3 +36,11 @@ cart_topic:
     channel: cart/channel
     handler:
         callback: 'cart.topic'
+
+user_rpc:
+    channel: user/{method}
+    handler:
+        callback: 'user.rpc'
+    requirements:
+        method:
+            pattern: "[a-z_]+"

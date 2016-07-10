@@ -44,6 +44,7 @@ class ProductRpc implements RpcInterface
         foreach ($products as $product) {
             $productsData[] = [
                 'id' => $product->id,
+                'name' => $product->name,
                 'description' => $product->description,
                 'price' => $product->price,
                 'quantity' => $product->quantity,
