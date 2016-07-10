@@ -13,6 +13,6 @@ class UserService
      */
     public function generateToken()
     {
-
+        return (string)\Ramsey\Uuid\Uuid::uuid4();
     }
 }

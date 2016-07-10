@@ -16,6 +16,7 @@ return [
         rpc\AcmeRpc::class,
         rpc\ProductRpc::class,
         rpc\UserRpc::class,
+        rpc\OrderRpc::class,
     ],
     'topics' => [
         topic\AcmeTopic::class,

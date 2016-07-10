@@ -44,3 +44,11 @@ user_rpc:
     requirements:
         method:
             pattern: "[a-z_]+"
+
+order_rpc:
+    channel: order/{method}
+    handler:
+        callback: 'order.rpc'
+    requirements:
+        method:
+            pattern: "[a-z_]+"
