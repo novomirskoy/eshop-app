@@ -2,10 +2,10 @@
 
 namespace app\websocket\rpc;
 
+use app\services\MailerService;
 use Novomirskoy\Websocket\Router\WampRequest;
 use Novomirskoy\Websocket\RPC\RpcInterface;
 use Ratchet\ConnectionInterface;
-use yii\swiftmailer\Mailer;
 
 /**
  * Class OrderRpc
@@ -14,39 +14,41 @@ use yii\swiftmailer\Mailer;
 class OrderRpc implements RpcInterface
 {
     /**
-     * @var Mailer
+     * @var MailerService
      */
-    protected $mailer;
+    protected $mailerService;
+
 
     /**
      * OrderRpc constructor.
      *
-     * @param Mailer $mailer
+     * @param MailerService $mailerService
      */
-    public function __construct(Mailer $mailer)
+    public function __construct(MailerService $mailerService)
     {
-        $this->mailer = $mailer;
+        $this->mailerService = $mailerService;
     }
 
     /**
      * @param ConnectionInterface $connection
      * @param WampRequest $request
      * @param array $params
+     *
+     * @return array
      */
     public function formation(ConnectionInterface $connection, WampRequest $request, $params)
     {
-        if (!array_key_exists('items', $params)) {
-            throw new \RuntimeException('Параметр items не передан');
+        if (!array_key_exists('cart', $params)) {
+            throw new \RuntimeException('Параметр cart не передан');
         }
 
-        $this
-            ->mailer
-            ->compose()
-            ->setTo('to@domain.com')
-            ->setSubject('Message subject')
-            ->setTextBody('Plain text content')
-            ->setHtmlBody('<b>HTML content</b>')
-            ->send();
+        if (!array_key_exists('email', $params)) {
+            throw new \RuntimeException('Параметр email не передан');
+        }
+
+        $this->mailerService->orderNotification($params['email'], $params['cart']);
+
+        return ['result' => true];
     }
 
     /**

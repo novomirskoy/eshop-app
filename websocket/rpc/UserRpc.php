@@ -162,7 +162,7 @@ class UserRpc implements RpcInterface
      */
     protected function getUserByToken($token)
     {
-        $criteria = ['authToken' => $token];
+        $criteria = ['accessToken' => $token];
 
         $user = $this
             ->repository

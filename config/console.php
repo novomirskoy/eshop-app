@@ -24,6 +24,18 @@ $config = [
                 ],
             ],
         ],
+        'mailer' => [
+            'class' => 'yii\swiftmailer\Mailer',
+            'useFileTransport' => false,
+            'transport' => [
+                'class' => 'Swift_SmtpTransport',
+                'host' => 'smtp.yandex.ru',
+                'username' => 'endin.artyom@yandex.ru',
+                'password' => 'Gn54dD6r3628',
+                'port' => '587',
+                'encryption' => 'TLS',
+            ],
+        ],
         'db' => $db,
     ],
     'params' => $params,
